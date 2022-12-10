@@ -1,32 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+import {useEffect, useRef, useState} from 'react'
 import './App.css'
 
+type CircleCoordinates = {
+  screenX: number
+  screenY: number
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [coordinates, setCoordinates] = useState<CircleCoordinates[]>([])
+  const [deletedCoordinates, setDeletedCoordinates] = useState<CircleCoordinates[]>([])
+  const undoRef = useRef<HTMLButtonElement>(null)
+  const restoreRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    window.addEventListener('mousedown', ({x, y, target}) => {
+      if (target === undoRef.current || target === restoreRef.current) return;
+      setCoordinates(prevState => [...prevState, {screenX: x, screenY: y}])
+    })
+  }, [])
+
+  const handleRemoveCoordinate = () => {
+    const copy = [...coordinates]
+    const lastEl = copy.pop()
+    setCoordinates(copy)
+    setDeletedCoordinates(prevState => [...prevState, lastEl!])
+  }
+
+  const handleRestoreCoordinate = () => {
+    const coordinatesCopy = [...coordinates]
+    const deletedCoordinatesCopy = [...deletedCoordinates]
+    const firstEl = deletedCoordinatesCopy.pop()
+    coordinatesCopy.push(firstEl!)
+    setCoordinates(coordinatesCopy)
+    setDeletedCoordinates(deletedCoordinatesCopy)
+  }
 
   return (
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className='btns'>
+        <button onClick={handleRemoveCoordinate} ref={undoRef} disabled={!coordinates.length}>undo</button>
+        <button onClick={handleRestoreCoordinate} ref={restoreRef} disabled={!deletedCoordinates.length}>next</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      {coordinates.map((coordinate, i) => (
+        <div key={i} className='circle' style={{top: coordinate.screenY - 50, left: coordinate.screenX - 50}}></div>
+      ))}
     </div>
   )
 }
